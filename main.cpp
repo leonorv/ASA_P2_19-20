@@ -1,0 +1,115 @@
+#include <string>
+#include <iostream>
+#include <list>
+#include <fstream>
+#include <sstream>
+#include <algorithm>
+#include <stack>
+#include <math.h>
+using namespace std;
+
+struct Graph {
+
+    int _numM, _numN, _numS, _numC, _numV;
+
+    list<int> *_adjLists;
+
+    int  *_dtimeList;
+    int  *_SList;
+    int *_CList; // c[1] = 1 se o vertex 1 tiver uma pessoa
+    
+
+    public:
+
+    Graph(int i) {
+    }
+
+    void setGraph(int M, int N, int S, int C) {
+        _numM = M;
+        _numN = N;
+        _numS = S;
+        _numC = C;
+        _numV = _numM * _numN;
+        _adjLists = new list<int>[_numV];
+        //_dtimeList = new int[_numV];
+        _SList = new int[_numV];
+        fill_n(_SList, _numV, 0);
+        _CList = new int[_numV];
+        fill_n(_CList, _numV, 0);
+
+
+    }
+
+    void createEdges() { //create all edges in a grid-like graph
+        for (int i = 0; i < _numV; i++) {
+            if (i-_numM >= 0) _adjLists[i].push_back(i - _numM); //up
+            if (i + _numM < _numV) _adjLists[i].push_back(i + _numM); //down
+            if (fmod(i, _numM) != 0) _adjLists[i].push_back(i - 1); //left
+            if ((i+1)%_numM != 0)_adjLists[i].push_back(i + 1); //right
+        }
+    }
+
+    void addVertex(int id, int hasS, int hasC) {
+        _SList[id] = hasS;
+        _CList[id] = hasC;
+    }
+
+    void printVertexList() {
+        for (int i = 0; i < _numV; i++) {
+            cout << _CList[i] << endl;
+        }
+    }
+
+    void printGraph() 
+{ 
+    for (int v = 0; v < _numV; ++v) 
+    { 
+        cout << "\n Adjacency list of vertex "
+             << v << "\n head "; 
+        for (auto x : _adjLists[v]) 
+           cout << "-> " << x; 
+        printf("\n"); 
+    } 
+} 
+};
+
+Graph graph(0);
+
+void processInput(int argc, char*argv[]) {
+    int M, N, S, C, m, n, id, i = 0;
+
+    string line;   
+
+
+    getline(cin, line);
+    sscanf(line.c_str(), "%d %d", &M, &N);
+    getline(cin, line);
+    sscanf(line.c_str(), "%d %d", &S, &C);
+
+
+    graph.setGraph(M, N, S, C);
+
+    while (i < S) {
+        getline(cin, line);
+        sscanf(line.c_str(), "%d %d", &m, &n);
+        id = (n-1)*M + m - 1;
+        graph.addVertex(id, 1, 0); //has S but not C
+        i++;
+    }
+    i = 0;
+    while(i < C) {
+        getline(cin, line);
+        sscanf(line.c_str(), "%d %d", &m, &n);
+        id = (n-1)*M + m - 1;
+        graph.addVertex(id, 0, 1); //has C but not S
+        printf("added C to %d\n", id);
+        i++;
+    }
+}
+
+int main(int argc, char* argv[]) { 
+    processInput(argc, argv);
+    graph.createEdges();
+    graph.printGraph();
+    return 0; 
+}
