@@ -11,16 +11,10 @@ using namespace std;
 struct Graph {
 
     int _numM, _numN, _numS, _numC, _numV;
-
-    //list<int> *_adjLists;
     int **_capacities;
-
-
-
     int  *_dtimeList;
     int  *_SList;
     int *_CList; // c[1] = 1 se o vertex 1 tiver uma pessoa
-    
 
     public:
 
@@ -32,7 +26,7 @@ struct Graph {
         _numN = N; //ruas horizontais
         _numS = S;
         _numC = C;
-        _numV = _numM * _numN;
+        _numV = _numM * _numN + 2;
         //_dtimeList = new int[_numV];
         _SList = new int[_numV];
         fill_n(_SList, _numV, 0);
@@ -45,10 +39,7 @@ struct Graph {
             _capacities[i] = new int[_numV];
             fill_n(_capacities[i], _numV, 0);
         }
-
-
     }
-
 
     void addEdge(int id1, int id2) {
         _capacities[id1][id2] = 1;
@@ -56,11 +47,11 @@ struct Graph {
     }
 
     void createEdges() { //create all edges in a grid-like graph
-        for (int i = 0; i < _numV; i++) {
-            if (i-_numM >= 0) addEdge(i, i - _numM); //up
-            if (i + _numM < _numV) addEdge(i, i + _numM); //down
-            if (fmod(i, _numM) != 0) addEdge(i, i-1); //left
-            if ((i+1)%_numM != 0) addEdge(i, i+1); //right
+        for (int i = 1; i < _numV - 1; i++) {
+            if (i > _numM) addEdge(i, i - _numM); //up
+            if (_numV - i < _numM) addEdge(i, i + _numM); //down
+            if (fmod(i-1, _numM) != 0) addEdge(i, i-1); //left
+            if (i%_numM != 0) addEdge(i, i+1); //right
         }
     }
 
@@ -75,15 +66,16 @@ struct Graph {
         }
     }
 
-    void printGraph() 
-{ 
-    for (int i = 0; i < _numV; i++) {
-                  cout << i << " : ";
-                  for (int j = 0; j < _numV; j++)
-                        cout << _capacities[i][j] << " ";
-                  cout << "\n";
-      } 
-} 
+    void printGraph() { 
+        for (int i = 0; i < _numV; i++) {
+            cout << i << " : ";
+            for (int j = 0; j < _numV; j++)
+                cout << _capacities[i][j] << " ";
+            cout << "\n";
+        } 
+    }
+
+     
 };
 
 Graph graph(0);
@@ -102,20 +94,26 @@ void processInput(int argc, char*argv[]) {
 
     graph.setGraph(M, N, S, C);
 
+    graph.addVertex(0, 0, 0); //added source
+    graph.addVertex(M*N+1, 0, 0); //added sink; 
+
     while (i < S) {
         getline(cin, line);
         sscanf(line.c_str(), "%d %d", &m, &n);
-        id = (n-1)*M + m - 1;
-        graph.addVertex(id, 1, 0); //has S but not C
+        id = (n-1)*M + m;
+        graph.addVertex(id, 1, 0); //has S but not C (added supermarket)
+        graph.addEdge(M*N+1, id); //added connections with supermarkets and sink
+        //printf("adding edge between %d and %d\n", M*N+1, id);
         i++;
     }
     i = 0;
     while(i < C) {
         getline(cin, line);
         sscanf(line.c_str(), "%d %d", &m, &n);
-        id = (n-1)*M + m - 1;
-        graph.addVertex(id, 0, 1); //has C but not S
-        printf("added C to %d\n", id);
+        id = (n-1)*M + m;
+        graph.addVertex(id, 0, 1); //has C but not S (added citizen)
+        graph.addEdge(0, id); //added connections with citizens and source
+        //printf("adding edge between %d and %d\n", 0, id);
         i++;
     }
 }
