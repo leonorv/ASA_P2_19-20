@@ -12,7 +12,10 @@ struct Graph {
 
     int _numM, _numN, _numS, _numC, _numV;
 
-    list<int> *_adjLists;
+    //list<int> *_adjLists;
+    int **_capacities;
+
+
 
     int  *_dtimeList;
     int  *_SList;
@@ -25,27 +28,39 @@ struct Graph {
     }
 
     void setGraph(int M, int N, int S, int C) {
-        _numM = M;
-        _numN = N;
+        _numM = M; //avenidas verticais
+        _numN = N; //ruas horizontais
         _numS = S;
         _numC = C;
         _numV = _numM * _numN;
-        _adjLists = new list<int>[_numV];
         //_dtimeList = new int[_numV];
         _SList = new int[_numV];
         fill_n(_SList, _numV, 0);
         _CList = new int[_numV];
         fill_n(_CList, _numV, 0);
 
+        //ALLOCATE AND INITIALIZE CAPACITIES AT 0
+        _capacities = new int*[_numV];
+        for (int i = 0; i < _numV; i++) {
+            _capacities[i] = new int[_numV];
+            fill_n(_capacities[i], _numV, 0);
+        }
 
+
+    }
+
+
+    void addEdge(int id1, int id2) {
+        _capacities[id1][id2] = 1;
+        _capacities[id2][id1] = 1;
     }
 
     void createEdges() { //create all edges in a grid-like graph
         for (int i = 0; i < _numV; i++) {
-            if (i-_numM >= 0) _adjLists[i].push_back(i - _numM); //up
-            if (i + _numM < _numV) _adjLists[i].push_back(i + _numM); //down
-            if (fmod(i, _numM) != 0) _adjLists[i].push_back(i - 1); //left
-            if ((i+1)%_numM != 0)_adjLists[i].push_back(i + 1); //right
+            if (i-_numM >= 0) addEdge(i, i - _numM); //up
+            if (i + _numM < _numV) addEdge(i, i + _numM); //down
+            if (fmod(i, _numM) != 0) addEdge(i, i-1); //left
+            if ((i+1)%_numM != 0) addEdge(i, i+1); //right
         }
     }
 
@@ -62,14 +77,12 @@ struct Graph {
 
     void printGraph() 
 { 
-    for (int v = 0; v < _numV; ++v) 
-    { 
-        cout << "\n Adjacency list of vertex "
-             << v << "\n head "; 
-        for (auto x : _adjLists[v]) 
-           cout << "-> " << x; 
-        printf("\n"); 
-    } 
+    for (int i = 0; i < _numV; i++) {
+                  cout << i << " : ";
+                  for (int j = 0; j < _numV; j++)
+                        cout << _capacities[i][j] << " ";
+                  cout << "\n";
+      } 
 } 
 };
 
