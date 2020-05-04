@@ -4,17 +4,20 @@
 #include <fstream>
 #include <sstream>
 #include <algorithm>
-#include <stack>
+#include <queue>
 #include <math.h>
 using namespace std;
 
 struct Graph {
 
-    int _numM, _numN, _numS, _numC, _numV;
+    int _numM, _numN, _numS, _numC, _numV, _max_flow = 0;
     int **_capacities;
     int  *_dtimeList;
     int  *_SList;
     int *_CList; // c[1] = 1 se o vertex 1 tiver uma pessoa
+    bool *_visited;
+    int *_parents;
+    queue<int> _queue;
 
     public:
 
@@ -27,7 +30,8 @@ struct Graph {
         _numS = S;
         _numC = C;
         _numV = _numM * _numN + 2;
-        //_dtimeList = new int[_numV];
+        _visited = new bool[_numV];
+        _parents = new int[_numV];
         _SList = new int[_numV];
         fill_n(_SList, _numV, 0);
         _CList = new int[_numV];
@@ -49,7 +53,10 @@ struct Graph {
     void createEdges() { //create all edges in a grid-like graph
         for (int i = 1; i < _numV - 1; i++) {
             if (i > _numM) addEdge(i, i - _numM); //up
-            if (_numV - i < _numM) addEdge(i, i + _numM); //down
+            if (_numV-1 - i > _numM) {
+                //printf("add edge %d e %d\n", i, i+_numM);
+                addEdge(i, i + _numM); //down
+            }
             if (fmod(i-1, _numM) != 0) addEdge(i, i-1); //left
             if (i%_numM != 0) addEdge(i, i+1); //right
         }
@@ -58,6 +65,8 @@ struct Graph {
     void addVertex(int id, int hasS, int hasC) {
         _SList[id] = hasS;
         _CList[id] = hasC;
+        _visited[id] = false;
+        _parents[id] = -1;
     }
 
     void printVertexList() {
@@ -73,6 +82,41 @@ struct Graph {
                 cout << _capacities[i][j] << " ";
             cout << "\n";
         } 
+    }
+
+    bool BFS() { //is there a path from s to t?
+        fill_n(_visited, _numV, false);
+        //_visited[_numV - 1] = false;
+        _queue.push(0);
+        _visited[0] = true;
+        int current;
+        while(!_queue.empty()) {
+            current = _queue.front();
+            _queue.pop();
+            for (int i = 0; i < _numV; i++) {
+                if (_capacities[current][i] > 0 && !_visited[i]) {
+                    _parents[i] = current;
+                    //printf("estamos a visitar %d\n", i);
+                    _visited[i] = true;
+                    _queue.push(i);
+                }
+            }
+        }
+        return _visited[_numV - 1];
+    }
+
+    int Ford_Fulkerson() {
+        while (BFS()) {
+            for (int i = _numV - 1; i != 0; i = _parents[i]) {
+                int p = _parents[i];
+                printf("(%d,%d)  ", p, i);
+                _capacities[p][i] = 0;
+                _capacities[i][p] = 2;
+            }
+            printf("\n");
+            _max_flow+=1;
+        }
+        return _max_flow;
     }
 
      
@@ -103,7 +147,6 @@ void processInput(int argc, char*argv[]) {
         id = (n-1)*M + m;
         graph.addVertex(id, 1, 0); //has S but not C (added supermarket)
         graph.addEdge(M*N+1, id); //added connections with supermarkets and sink
-        //printf("adding edge between %d and %d\n", M*N+1, id);
         i++;
     }
     i = 0;
@@ -113,7 +156,6 @@ void processInput(int argc, char*argv[]) {
         id = (n-1)*M + m;
         graph.addVertex(id, 0, 1); //has C but not S (added citizen)
         graph.addEdge(0, id); //added connections with citizens and source
-        //printf("adding edge between %d and %d\n", 0, id);
         i++;
     }
 }
@@ -121,6 +163,7 @@ void processInput(int argc, char*argv[]) {
 int main(int argc, char* argv[]) { 
     processInput(argc, argv);
     graph.createEdges();
-    graph.printGraph();
+    //graph.printGraph();
+    cout << graph.Ford_Fulkerson() << '\n';
     return 0; 
 }
