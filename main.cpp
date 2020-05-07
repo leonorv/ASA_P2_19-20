@@ -8,12 +8,25 @@
 #include <math.h>
 using namespace std;
 
+struct Vertex {
+    int _in, _out, _isC, _isS;
+
+    public:
+    Vertex(int inID, int outID, int isC, int isS) {
+        _in = inID;
+        _out = outID;
+        _isC = isC;
+        _isS = isS;
+    }
+};
+
 
 struct Graph {
 
     int _numM, _numN, _numS, _numC, _numV, _max_flow = 0;
     int **_capacities;
-    int  *_dtimeList;
+    list<int> *_adjLists;
+    
     int  *_SList;
     int *_CList; // c[1] = 1 se o vertex 1 tiver uma pessoa
     bool *_visited;
@@ -40,34 +53,50 @@ struct Graph {
         fill_n(_CList, _numV, 0);
 
 
-        //ALLOCATE AND INITIALIZE CAPACITIES AT 0
         _capacities = new int*[_numV];
         for (int i = 0; i < _numV; i++) {
             _capacities[i] = new int[_numV];
             fill_n(_capacities[i], _numV, 0);
         }
+        _adjLists = new list<int>[_numV];
     }
 
     void addEdge(int id1, int id2) {
         _capacities[id1][id2] = 1;
         _capacities[id2][id1] = 1;
+        _adjLists[id1].push_back(id2);
+        _adjLists[id2].push_back(id1);
     }
 
     void addSingleEdge(int id1, int id2) {
         _capacities[id1][id2] = 1;
+        _adjLists[id2].push_back(id1);
+        _adjLists[id1].push_back(id2);
     }
 
     void createEdges() { //create all edges in a grid-like graph
         for (int i = 1; i < _numV - 1; i++) {
             if (i%2 != 0) addEdge(i, i+1); //added edge between in and out
             if (i > _numM*2) { //up
-                if (i%2 == 0) addSingleEdge(i, i-_numM*2-1);
+                if (i%2 == 0) {
+                    //printf("add edge bt %d and %d\n", i,i-_numM*2-1);
+                    addSingleEdge(i, i-_numM*2-1);
+                }
             }
             if (_numV-1 - i > _numM*2) { //down
-                if (i%2 == 0) addSingleEdge(i, i + _numM*2-1);
+                if (i%2 == 0) {
+                    //printf("add edge bt %d and %d\n", i,i+_numM*2-1);
+                    addSingleEdge(i, i + _numM*2-1);
+                }
             }
-            if (fmod(i-1, _numM*2) != 0 && i%2 == 0) addSingleEdge(i, i-3); //left
-            if (i%(_numM*2) != 0 && i%2 == 0) addSingleEdge(i, i+1); //right
+            if (fmod(i-1, _numM*2) != 0 && i%2 == 0 && (i-2)%_numM != 0) {
+                //printf("add edge bt %d and %d\n", i,i-3);
+                addSingleEdge(i, i-3); //left
+            }
+            if (i%(_numM*2) != 0 && i%2 == 0) {
+                //printf("add edge bt %d and %d\n", i,i+1);
+                addSingleEdge(i, i+1); //right
+            }
         }
     }
 
@@ -84,26 +113,43 @@ struct Graph {
         }
     }
 
-    void printGraph() { 
-        for (int i = 0; i < _numV; i++) {
-            cout << i << " : ";
-            for (int j = 0; j < _numV; j++)
-                cout << _capacities[i][j] << " ";
-            cout << "\n";
-        } 
-    }
+    void printGraph() 
+{ 
+    for (int v = 0; v < _numV; ++v) 
+    { 
+        cout << "\n Adjacency list of vertex "
+             << v << "\n head "; 
+        for (auto x : _adjLists[v]) 
+           cout << "-> " << x; 
+        printf("\n"); 
+    } 
+} 
 
     bool BFS() { //is there a path from s to t?
         fill_n(_visited, _numV, false);
         _queue.push(0);
         _visited[0] = true;
         int current;
+        list<int>::iterator i;
         while(!_queue.empty()) {
             current = _queue.front();
             _queue.pop();
             
-            for (int i = 0; i < _numV; i++) {
+            for (i = _adjLists[current].begin(); i != _adjLists[current].end(); ++i) {
+                //printf("cap bt %d and %d is %d\n", current, *i, _capacities[current][*i]);
+                if (_capacities[current][*i] > 0 && !_visited[*i]) {
+                    _parents[*i] = current;
+                    
+                    _visited[*i] = true;
+                    _queue.push(*i);
+                }
+            }
+        }
+        return _visited[_numV - 1];
+    } /*
+    for (int i = 0; i < _numV; i++) {
                 if (_capacities[current][i] > 0 && !_visited[i]) {
+                    printf("cap bt %d and %d is %d\n", current, i, _capacities[current][i]);
                     _parents[i] = current;
                     
                     _visited[i] = true;
@@ -112,7 +158,7 @@ struct Graph {
             }
         }
         return _visited[_numV - 1];
-    }
+    }*/
 
     int Ford_Fulkerson() {
         while (BFS()) { 
