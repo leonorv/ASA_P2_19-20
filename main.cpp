@@ -8,29 +8,24 @@
 #include <math.h>
 using namespace std;
 
-struct Vertex {
-    int _in, _out, _isC, _isS;
-
-    public:
-    Vertex(int inID, int outID, int isC, int isS) {
-        _in = inID;
-        _out = outID;
-        _isC = isC;
-        _isS = isS;
-    }
-};
+int idToCluster(int id) {
+    return static_cast <int>(floor((id+1)/2));
+}
 
 
 struct Graph {
 
     int _numM, _numN, _numS, _numC, _numV, _max_flow = 0;
-    int **_capacities;
+    int **_capacities; //for connecting clusters
+    int *_ogCap; //for clusters
+    int *_rCap;  //for clusters
     list<int> *_adjLists;
     
-    int  *_SList;
-    int *_CList; // c[1] = 1 se o vertex 1 tiver uma pessoa
     bool *_visited;
     int *_parents;
+
+    int *_SList;
+    int *_CList;
 
     queue<int> _queue;
 
@@ -47,36 +42,55 @@ struct Graph {
         _numV = _numM*_numN*2 + 2;
         _visited = new bool[_numV];
         _parents = new int[_numV];
-        _SList = new int[_numV];
-        fill_n(_SList, _numV, 0);
-        _CList = new int[_numV];
-        fill_n(_CList, _numV, 0);
+
+        _ogCap = new int[_numV/2];
+        _rCap = new int[_numV/2];
+
+        _SList = new int[_numV/2+1];
+        fill_n(_SList, _numV/2+1, 0);
+        _CList = new int[_numV/2+1];
+        fill_n(_CList, _numV/2+1, 0);
+
+        printf("bom dia prof\n");
 
 
-        _capacities = new int*[_numV];
-        for (int i = 0; i < _numV; i++) {
-            _capacities[i] = new int[_numV];
-            fill_n(_capacities[i], _numV, 0);
+        _capacities = new int*[_numV/2 + 1]; //numV/2 is number of clusters
+        for (int i = 0; i < _numV/2 + 1; i++) { 
+            _capacities[i] = new int[_numV/2+1];
+            fill_n(_capacities[i], _numV/2+1, 0);
+            //printf("---------%d\n", _capacities[i][1]);
         }
         _adjLists = new list<int>[_numV];
     }
 
-    void addEdge(int id1, int id2) {
-        _capacities[id1][id2] = 1;
-        _capacities[id2][id1] = 1;
+    /*void addEdge(int id1, int id2) {
+        _capacities[idToCluster(id1)][idToCluster(id2)] = 1;
+        _capacities[idToCluster(id2)][idToCluster(id1)] = 1;
+
         _adjLists[id1].push_back(id2);
         _adjLists[id2].push_back(id1);
-    }
+    }*/
 
     void addSingleEdge(int id1, int id2) {
-        _capacities[id1][id2] = 1;
+        //printf("id %d passa a cluster %d\n",, idToCluster(id1));
+        //printf("id %d passa a cluster %d\n",id2, idToCluster(id2));
+        //printf("oi %d\n", _capacities[idToCluster(id1)][idToCluster(id2)]);
+        printf("-----------------add edge %d and %d\n", id1, id2);
+        _capacities[idToCluster(id1)][idToCluster(id2)] = 1;
         _adjLists[id2].push_back(id1);
         _adjLists[id1].push_back(id2);
+    }
+
+    void addClusterEdge(int id1, int id2) {
+        _adjLists[id2].push_back(id1);
+        _adjLists[id1].push_back(id2);
+        _ogCap[idToCluster(id1)] = 1;
+        _rCap[idToCluster(id1)] = 1;
     }
 
     void createEdges() { //create all edges in a grid-like graph
         for (int i = 1; i < _numV - 1; i++) {
-            if (i%2 != 0) addEdge(i, i+1); //added edge between in and out
+            if (i%2 != 0) addClusterEdge(i, i+1); //added edge between in and out
             if (i > _numM*2) { //up
                 if (i%2 == 0) {
                     //printf("add edge bt %d and %d\n", i,i-_numM*2-1);
@@ -124,20 +138,35 @@ struct Graph {
         printf("\n"); 
     } 
 } 
+    void printMatrix() {
+    for (int i = 0; i < _numV/2+1; i++) {
+      cout << i << " : ";
+      for (int j = 0; j < _numV/2+1; j++)
+        cout << _capacities[i][j] << " ";
+      cout << "\n";
+    }
+    }
+
 
     bool BFS() { //is there a path from s to t?
         fill_n(_visited, _numV, false);
         _queue.push(0);
         _visited[0] = true;
-        int current;
+        int current, capacity;
         list<int>::iterator i;
         while(!_queue.empty()) {
             current = _queue.front();
             _queue.pop();
             
             for (i = _adjLists[current].begin(); i != _adjLists[current].end(); ++i) {
-                //printf("cap bt %d and %d is %d\n", current, *i, _capacities[current][*i]);
-                if (_capacities[current][*i] > 0 && !_visited[*i]) {
+                if (current%2 != 0 && idToCluster(current)==idToCluster(*i)) capacity = _ogCap[idToCluster(current)]; 
+                else if (current%2 == 0 && idToCluster(current)==idToCluster(*i)) capacity = _rCap[idToCluster(current)]; 
+                else if (current%2 == 0 && idToCluster(current)!=idToCluster(*i)) capacity = _capacities[idToCluster(current)][idToCluster(*i)];
+                else capacity = 0;
+
+                //printf("cap %d and %d is %d\n", current, *i, capacity);
+
+                if (capacity > 0 && !_visited[*i]) {
                     _parents[*i] = current;
                     
                     _visited[*i] = true;
@@ -146,31 +175,26 @@ struct Graph {
             }
         }
         return _visited[_numV - 1];
-    } /*
-    for (int i = 0; i < _numV; i++) {
-                if (_capacities[current][i] > 0 && !_visited[i]) {
-                    printf("cap bt %d and %d is %d\n", current, i, _capacities[current][i]);
-                    _parents[i] = current;
-                    
-                    _visited[i] = true;
-                    _queue.push(i);
-                }
-            }
-        }
-        return _visited[_numV - 1];
-    }*/
+    } 
 
     int Ford_Fulkerson() {
         while (BFS()) { 
             for (int i = _numV - 1; i != 0; i = _parents[i]) {
                 int p = _parents[i];
 
-                //printf("(%d,%d)  ", p, i);
-                _capacities[p][i] = 0;
-                _capacities[i][p] = 2;
+                printf("(%d, %d)    ", i, p);
+
+                if (idToCluster(i)==idToCluster(p)) {
+                    _ogCap[idToCluster(i)] = 0;
+                    _rCap[idToCluster(i)] = 2;
+                }
+                else {
+                    _capacities[idToCluster(p)][idToCluster(i)] = 0;
+                    _capacities[idToCluster(i)][idToCluster(p)] = 2;
+                }
 
             }
-            //printf("\n");
+            printf("\n");
             _max_flow++;
         }
         return _max_flow;
@@ -224,6 +248,7 @@ void processInput(int argc, char*argv[]) {
 int main(int argc, char* argv[]) { 
     processInput(argc, argv);
     graph.createEdges();
+    //graph.printMatrix();
     //graph.printGraph();
     cout << graph.Ford_Fulkerson() << '\n';
     return 0; 
