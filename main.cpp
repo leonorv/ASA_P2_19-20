@@ -1,10 +1,7 @@
-#include <string>
 #include <iostream>
-#include <list>
 #include <fstream>
 #include <sstream>
 #include <algorithm>
-#include <queue>
 #include <math.h>
 #include <vector>
 #include <tuple>
@@ -17,11 +14,8 @@ struct Graph {
     
     vector<tuple<int, int>> *_adjLists;
 
-    //vector<bool>_visited;
     bool *_visited;
     int *_parents;
-
-    queue<int> _queue;
 
     public:
 
@@ -52,33 +46,10 @@ struct Graph {
             if (i%2 != 0) addClusterEdge(i, i+1); //added edge between in and out
             if (i > _numM*2 && i%2 == 0) addSingleEdge(i, i-_numM*2-1); //up
             if (_numV-1 - i > _numM*2 && i%2 == 0) addSingleEdge(i, i + _numM*2-1); //down
-            if (fmod(i-1, _numM*2) != 0 && i%2 == 0 && (i-2)%_numM != 0) addSingleEdge(i, i-3); //left
+            if ((i/2)%_numM != 1 && i%2 == 0) addSingleEdge(i, i-3); //left
             if (i%(_numM*2) != 0 && i%2 == 0) addSingleEdge(i, i+1); //right
         }
     } 
-
-    /*bool BFS() { //is there a path from s to t?
-        fill_n(_visited, _numV, false);
-        //_visited.assign(_numV, false);
-        _queue.push(0);
-        _visited[0] = true;
-        int current;
-        while (!_queue.empty()) {
-
-            current = _queue.front();
-            _queue.pop();
-                    
-            for (tuple<int,int> &i : _adjLists[current]) {
-                if (get<1>(i) > 0 && !_visited[get<0>(i)]) {
-                    _parents[get<0>(i)] = current;
-
-                    _visited[get<0>(i)] = true;
-                    _queue.push(get<0>(i));
-                }
-            }
-        }
-        return _visited[_numV - 1];
-    } */
 
     bool DFS(int s, int t) {
         if (s == t) return true;
@@ -110,16 +81,11 @@ struct Graph {
                         break;
                     }
                 }
-
-
-
             }
             _max_flow++;
         }
         return _max_flow;
-    }
-
-     
+    } 
 };
 
 Graph graph(0);
@@ -134,7 +100,6 @@ void processInput(int argc, char*argv[]) {
     sscanf(line.c_str(), "%d %d", &M, &N);
     getline(cin, line);
     sscanf(line.c_str(), "%d %d", &S, &C);
-
 
     graph.setGraph(M, N);
 
